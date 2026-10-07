@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: oficina-db
+    environment:
+      POSTGRES_USER: oficina
+      POSTGRES_PASSWORD: oficina
+      POSTGRES_DB: oficina
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U oficina -d oficina']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: oficina-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: oficina
+      DB_PASSWORD: oficina
+      DB_DATABASE: oficina
+      DB_SYNCHRONIZE: 'true'
+      DB_LOGGING: 'false'
+      JWT_SECRET: troque-por-um-segredo-forte-em-producao
+      JWT_EXPIRES_IN: 3600s
+      ADMIN_EMAIL: admin@oficina.com.br
+      ADMIN_PASSWORD: Admin@123
+    ports:
+      - '3000:3000'
+
+volumes:
+  pgdata:

@@ -1,0 +1,27 @@
+# Dependencias
+/node_modules
+
+# Build
+/dist
+*.tsbuildinfo
+
+# Cobertura de testes
+/coverage
+
+# Variaveis de ambiente
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operacional / editor
+.DS_Store
+.idea
+.vscode
+*.swp
+
+# Material de preparacao da entrega (nao faz parte do codigo do projeto)
+docs/entrega/
