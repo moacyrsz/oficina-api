@@ -43,19 +43,27 @@ Esta tabela liga cada elemento do modelo de domínio ao arquivo que o implementa
 
 | Comando de negócio | Caso de uso |
 |--------------------|-------------|
-| Criar Ordem de Serviço | `application/criar-ordem-de-servico.use-case.ts` |
+| Criar Ordem de Serviço (pelo CPF/CNPJ e pela placa) | `application/criar-ordem-de-servico.use-case.ts` |
 | Iniciar Diagnóstico | `application/iniciar-diagnostico.use-case.ts` |
 | Adicionar Serviço | `application/adicionar-servico.use-case.ts` |
 | Adicionar Peça | `application/adicionar-peca.use-case.ts` |
 | Enviar Orçamento | `application/enviar-orcamento.use-case.ts` |
-| Aprovar Orçamento | `application/aprovar-orcamento.use-case.ts` |
-| Rejeitar Orçamento | `application/rejeitar-orcamento.use-case.ts` |
+| Aprovar Orçamento (equipe, em nome do cliente) | `application/aprovar-orcamento.use-case.ts` |
+| Rejeitar Orçamento (equipe, em nome do cliente) | `application/rejeitar-orcamento.use-case.ts` |
+| Aprovar Orçamento (cliente, API pública) | `application/aprovar-orcamento-pelo-cliente.use-case.ts` |
+| Rejeitar Orçamento (cliente, API pública) | `application/rejeitar-orcamento-pelo-cliente.use-case.ts` |
 | Finalizar Ordem | `application/finalizar-ordem.use-case.ts` |
 | Entregar Veículo | `application/entregar-veiculo.use-case.ts` |
 | Consultar Andamento (público) | `application/consultar-andamento.use-case.ts` |
 | Calcular Tempo Médio | `application/calcular-tempo-medio.use-case.ts` |
 
-Todos sob `src/modules/ordens-servico/`.
+Todos sob `src/modules/ordens-servico/`. As rotas públicas usam o `LocalizadorDeOrdemDoCliente` (`application/localizador-de-ordem-do-cliente.ts`), que confere o código da OS e o documento do cliente.
+
+| Comando de cadastro e estoque | Caso de uso |
+|-------------------------------|-------------|
+| Remover Cliente | `src/modules/clientes/application/remover-cliente.use-case.ts` |
+| Remover Veículo | `src/modules/veiculos/application/remover-veiculo.use-case.ts` |
+| Repor Estoque | `src/modules/pecas/application/repor-estoque.use-case.ts` |
 
 ## Políticas e regras de negócio
 
@@ -68,7 +76,12 @@ Todos sob `src/modules/ordens-servico/`.
 | Estoque nunca negativo | `baixarEstoque` em `peca.ts` |
 | CPF ou CNPJ válido | `documento.ts` |
 | Placa válida | `placa.ts` |
+| OS aberta pelo CPF/CNPJ do cliente e pela placa do veículo | `criar-ordem-de-servico.use-case.ts` + `consulta-de-cliente.adapter.ts` e `consulta-de-veiculo.adapter.ts` |
 | Veículo precisa pertencer ao cliente na abertura da OS | `criar-ordem-de-servico.use-case.ts` |
+| Decisão do cliente só com o código da OS e o documento dele | `localizador-de-ordem-do-cliente.ts` |
+| Comandos simultâneos na mesma OS executados um de cada vez | `buscarPorIdParaAtualizar` em `ordem-de-servico.repository.typeorm.ts`, usado por todos os comandos |
+| Reposição e atualização de peça sem sobrescrever o saldo | `repor-estoque.use-case.ts` e `atualizar-peca.use-case.ts` + `buscarParaAtualizar` em `peca.repository.typeorm.ts` |
+| Cliente ou veículo com histórico não pode ser removido | `remover-cliente.use-case.ts` e `remover-veiculo.use-case.ts` |
 
 ## Portas e adaptadores entre contextos
 
@@ -79,6 +92,11 @@ Todos sob `src/modules/ordens-servico/`.
 | `application/ports/consulta-de-cliente.ts` | `infrastructure/consulta-de-cliente.adapter.ts` |
 | `application/ports/consulta-de-veiculo.ts` | `infrastructure/consulta-de-veiculo.adapter.ts` |
 
+| Porta (contextos de cadastro) | Adaptador |
+|-------------------------------|-----------|
+| `clientes/application/ports/vinculos-do-cliente.ts` | `clientes/infrastructure/vinculos-do-cliente.typeorm.ts` |
+| `veiculos/application/ports/vinculos-do-veiculo.ts` | `veiculos/infrastructure/vinculos-do-veiculo.typeorm.ts` |
+
 ## Transações
 
-A porta `UnidadeDeTrabalho` (`src/shared/application/unidade-de-trabalho.ts`) é implementada por `unidade-de-trabalho.typeorm.ts`, que abre a transação do PostgreSQL. O `ContextoDeTransacao` (AsyncLocalStorage) garante que os repositórios participem da mesma transação. É o que torna atômica a aprovação do orçamento com a baixa de estoque.
+A porta `UnidadeDeTrabalho` (`src/shared/application/unidade-de-trabalho.ts`) é implementada por `unidade-de-trabalho.typeorm.ts`, que abre a transação do PostgreSQL. O `ContextoDeTransacao` (AsyncLocalStorage) garante que os repositórios participem da mesma transação. É o que torna atômica a aprovação do orçamento com a baixa de estoque. Dentro da transação, a ordem e as peças são lidas com bloqueio de linha (`SELECT ... FOR UPDATE`), o que serializa operações simultâneas sobre os mesmos registros.
