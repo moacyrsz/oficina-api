@@ -86,6 +86,7 @@ export class ClientesController {
   @ApiOperation({ summary: 'Remove um cliente' })
   @ApiResponse({ status: 204, description: 'Cliente removido' })
   @ApiResponse({ status: 404, description: 'Cliente nao encontrado' })
+  @ApiResponse({ status: 409, description: 'Cliente possui veiculos ou ordens de servico' })
   public remover(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ): Promise<void> {

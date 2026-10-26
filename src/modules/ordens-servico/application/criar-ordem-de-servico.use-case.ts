@@ -11,14 +11,15 @@ import { CONSULTA_DE_VEICULO, ConsultaDeVeiculo } from './ports/consulta-de-veic
 import { OrdemDeServicoSaida, paraSaida } from './ordem-de-servico.saida';
 
 export interface EntradaCriarOrdem {
-  clienteId: string;
-  veiculoId: string;
+  /** CPF ou CNPJ do cliente, com ou sem mascara. */
+  documento: string;
+  placa: string;
 }
 
 /**
- * Cria uma nova Ordem de Servico. Valida que o cliente e o veiculo existem e que
- * o veiculo pertence ao cliente informado antes de abrir a ordem no status
- * Recebida.
+ * Cria uma nova Ordem de Servico. Identifica o cliente pelo CPF ou CNPJ e o
+ * veiculo pela placa, e confere que o veiculo pertence ao cliente antes de
+ * abrir a ordem no status Recebida.
  */
 @Injectable()
 export class CriarOrdemDeServicoUseCase {
@@ -30,14 +31,15 @@ export class CriarOrdemDeServicoUseCase {
   ) {}
 
   public async executar(entrada: EntradaCriarOrdem): Promise<OrdemDeServicoSaida> {
-    const cliente = await this.clientes.buscarPorId(entrada.clienteId);
+    const [cliente, veiculo] = await Promise.all([
+      this.clientes.buscarPorDocumento(entrada.documento),
+      this.veiculos.buscarPorPlaca(entrada.placa),
+    ]);
     if (!cliente) {
-      throw new RecursoNaoEncontrado('Cliente nao encontrado.');
+      throw new RecursoNaoEncontrado('Nenhum cliente cadastrado com o documento informado.');
     }
-
-    const veiculo = await this.veiculos.buscarPorId(entrada.veiculoId);
     if (!veiculo) {
-      throw new RecursoNaoEncontrado('Veiculo nao encontrado.');
+      throw new RecursoNaoEncontrado('Nenhum veiculo cadastrado com a placa informada.');
     }
 
     if (veiculo.clienteId !== cliente.id) {

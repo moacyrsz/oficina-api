@@ -10,6 +10,7 @@ export interface ConfiguracaoBanco {
   password: string;
   database: string;
   synchronize: boolean;
+  migrationsRun: boolean;
   logging: boolean;
 }
 
@@ -69,9 +70,10 @@ export function carregarConfiguracao(): Configuracao {
       username: process.env.DB_USERNAME ?? 'oficina',
       password: process.env.DB_PASSWORD ?? 'oficina',
       database: process.env.DB_DATABASE ?? 'oficina',
-      // Padrao seguro: false. A sincronizacao automatica de schema so e ligada
-      // explicitamente em desenvolvimento (.env) e no docker-compose do MVP.
+      // O schema e criado e evoluido pelas migrations, aplicadas na subida.
+      // A sincronizacao automatica do TypeORM fica desligada por padrao.
       synchronize: booleano(process.env.DB_SYNCHRONIZE, false),
+      migrationsRun: booleano(process.env.DB_MIGRATIONS_RUN, true),
       logging: booleano(process.env.DB_LOGGING, false),
     },
     jwt: {

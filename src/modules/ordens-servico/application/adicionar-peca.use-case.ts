@@ -30,7 +30,7 @@ export class AdicionarPecaUseCase {
 
   public async executar(entrada: EntradaAdicionarPeca): Promise<OrdemDeServicoSaida> {
     return this.unidadeDeTrabalho.executar(async () => {
-      const ordem = await this.ordens.buscarPorId(entrada.ordemId);
+      const ordem = await this.ordens.buscarPorIdParaAtualizar(entrada.ordemId);
       if (!ordem) {
         throw new RecursoNaoEncontrado('Ordem de servico nao encontrada.');
       }

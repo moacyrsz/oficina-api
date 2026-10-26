@@ -31,14 +31,23 @@ export class GestaoDeEstoqueAdapter implements GestaoDeEstoque {
   }
 
   public async baixar(itens: ItemParaBaixa[]): Promise<void> {
+    const quantidadePorPeca = new Map<string, number>();
     for (const item of itens) {
-      // Leitura com bloqueio pessimista: a baixa ocorre dentro da transacao da
-      // aprovacao, e o lock serializa baixas concorrentes do mesmo item.
-      const peca = await this.pecas.buscarParaAtualizar(item.pecaId);
+      quantidadePorPeca.set(
+        item.pecaId,
+        (quantidadePorPeca.get(item.pecaId) ?? 0) + item.quantidade,
+      );
+    }
+
+    // As pecas sao bloqueadas sempre na mesma ordem (por id): duas aprovacoes
+    // com pecas em comum nunca ficam esperando uma pela outra (deadlock).
+    const pecaIds = [...quantidadePorPeca.keys()].sort();
+    for (const pecaId of pecaIds) {
+      const peca = await this.pecas.buscarParaAtualizar(pecaId);
       if (!peca) {
-        throw new RecursoNaoEncontrado(`Peca ${item.pecaId} nao encontrada.`);
+        throw new RecursoNaoEncontrado(`Peca ${pecaId} nao encontrada.`);
       }
-      peca.baixarEstoque(item.quantidade);
+      peca.baixarEstoque(quantidadePorPeca.get(pecaId) as number);
       await this.pecas.salvar(peca);
     }
   }

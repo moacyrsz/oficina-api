@@ -13,6 +13,7 @@ import { EnviarOrcamentoUseCase } from './enviar-orcamento.use-case';
 import { FinalizarOrdemUseCase } from './finalizar-ordem.use-case';
 import { IniciarDiagnosticoUseCase } from './iniciar-diagnostico.use-case';
 import { ListarOrdensUseCase } from './listar-ordens.use-case';
+import { LocalizadorDeOrdemDoCliente } from './localizador-de-ordem-do-cliente';
 import { RejeitarOrcamentoUseCase } from './rejeitar-orcamento.use-case';
 import {
   CatalogoDeServicosFake,
@@ -27,10 +28,11 @@ const CLIENTE_ID = '00000000-0000-0000-0000-0000000000c1';
 const VEICULO_ID = '00000000-0000-0000-0000-0000000000a1';
 const SERVICO_ID = '00000000-0000-0000-0000-0000000000e1';
 const PECA_ID = '00000000-0000-0000-0000-0000000000f1';
+const ABERTURA = { documento: '529.982.247-25', placa: 'ABC1D23' };
 
 function montarCenario(estoqueDisponivel = 10) {
-  const ordens = new RepositorioDeOrdensEmMemoria();
   const uow = new UnidadeDeTrabalhoFake();
+  const ordens = new RepositorioDeOrdensEmMemoria(uow);
   const clientes = new ConsultaDeClienteFake([
     { id: CLIENTE_ID, nome: 'Maria', documento: '52998224725' },
   ]);
@@ -61,7 +63,7 @@ function montarCenario(estoqueDisponivel = 10) {
     listar: new ListarOrdensUseCase(ordens),
     detalhar: new DetalharOrdemUseCase(ordens),
     tempoMedio: new CalcularTempoMedioUseCase(ordens),
-    consultar: new ConsultarAndamentoUseCase(ordens, clientes, veiculos),
+    consultar: new ConsultarAndamentoUseCase(new LocalizadorDeOrdemDoCliente(ordens, clientes), veiculos),
   };
 }
 
@@ -69,7 +71,7 @@ describe('Casos de uso da Ordem de Servico', () => {
   it('executa o fluxo completo de atendimento ate a entrega', async () => {
     const c = montarCenario();
 
-    const criada = await c.criar.executar({ clienteId: CLIENTE_ID, veiculoId: VEICULO_ID });
+    const criada = await c.criar.executar(ABERTURA);
     expect(criada.status).toBe(StatusOrdemServico.RECEBIDA);
 
     await c.diagnosticar.executar(criada.id);
@@ -106,10 +108,26 @@ describe('Casos de uso da Ordem de Servico', () => {
     expect(andamento.veiculo).toContain('ABC1D23');
   });
 
-  it('rejeita a criacao quando o cliente nao existe', async () => {
+  it('abre a ordem para o cliente do documento e o veiculo da placa informados', async () => {
+    const c = montarCenario();
+
+    const criada = await c.criar.executar(ABERTURA);
+
+    expect(criada.clienteId).toBe(CLIENTE_ID);
+    expect(criada.veiculoId).toBe(VEICULO_ID);
+  });
+
+  it('rejeita a criacao quando nao ha cliente com o documento informado', async () => {
     const c = montarCenario();
     await expect(
-      c.criar.executar({ clienteId: 'inexistente', veiculoId: VEICULO_ID }),
+      c.criar.executar({ documento: '111.444.777-35', placa: 'ABC1D23' }),
+    ).rejects.toBeInstanceOf(RecursoNaoEncontrado);
+  });
+
+  it('rejeita a criacao quando a placa nao esta cadastrada', async () => {
+    const c = montarCenario();
+    await expect(
+      c.criar.executar({ documento: '529.982.247-25', placa: 'XYZ9A88' }),
     ).rejects.toBeInstanceOf(RecursoNaoEncontrado);
   });
 
@@ -124,14 +142,12 @@ describe('Casos de uso da Ordem de Servico', () => {
       veiculos,
       new UnidadeDeTrabalhoFake(),
     );
-    await expect(
-      criar.executar({ clienteId: CLIENTE_ID, veiculoId: VEICULO_ID }),
-    ).rejects.toBeInstanceOf(RegraDeNegocioViolada);
+    await expect(criar.executar(ABERTURA)).rejects.toBeInstanceOf(RegraDeNegocioViolada);
   });
 
   it('nao aprova a ordem quando o estoque e insuficiente e mantem o status', async () => {
     const c = montarCenario(1);
-    const criada = await c.criar.executar({ clienteId: CLIENTE_ID, veiculoId: VEICULO_ID });
+    const criada = await c.criar.executar(ABERTURA);
     await c.diagnosticar.executar(criada.id);
     await c.addPeca.executar({ ordemId: criada.id, pecaId: PECA_ID, quantidade: 3 });
     await c.enviar.executar(criada.id);
@@ -147,7 +163,7 @@ describe('Casos de uso da Ordem de Servico', () => {
 
   it('registra a rejeicao do orcamento e retorna para diagnostico', async () => {
     const c = montarCenario();
-    const criada = await c.criar.executar({ clienteId: CLIENTE_ID, veiculoId: VEICULO_ID });
+    const criada = await c.criar.executar(ABERTURA);
     await c.diagnosticar.executar(criada.id);
     await c.addServico.executar({ ordemId: criada.id, servicoId: SERVICO_ID, quantidade: 1 });
     await c.enviar.executar(criada.id);
@@ -159,7 +175,7 @@ describe('Casos de uso da Ordem de Servico', () => {
 
   it('bloqueia a consulta publica com documento incorreto, sem revelar a existencia da ordem', async () => {
     const c = montarCenario();
-    const criada = await c.criar.executar({ clienteId: CLIENTE_ID, veiculoId: VEICULO_ID });
+    const criada = await c.criar.executar(ABERTURA);
     await expect(
       c.consultar.executar({ codigo: criada.codigo, documento: '00000000000' }),
     ).rejects.toBeInstanceOf(RecursoNaoEncontrado);
@@ -182,6 +198,33 @@ describe('Casos de uso da Ordem de Servico', () => {
     await expect(
       c.consultar.executar({ codigo: 'OS-NAOEXISTE', documento: '52998224725' }),
     ).rejects.toBeInstanceOf(RecursoNaoEncontrado);
+  });
+
+  it('le a ordem com bloqueio, dentro da transacao, em todos os comandos do fluxo', async () => {
+    const c = montarCenario();
+    const criada = await c.criar.executar(ABERTURA);
+
+    await c.diagnosticar.executar(criada.id);
+    await c.addServico.executar({ ordemId: criada.id, servicoId: SERVICO_ID, quantidade: 1 });
+    await c.addPeca.executar({ ordemId: criada.id, pecaId: PECA_ID, quantidade: 1 });
+    await c.enviar.executar(criada.id);
+    await c.aprovar.executar(criada.id);
+    await c.finalizar.executar(criada.id);
+    await c.entregar.executar(criada.id);
+
+    expect(c.ordens.leiturasComBloqueio).toEqual(Array(7).fill(criada.id));
+  });
+
+  it('le a ordem com bloqueio, dentro da transacao, ao rejeitar o orcamento', async () => {
+    const c = montarCenario();
+    const criada = await c.criar.executar(ABERTURA);
+    await c.diagnosticar.executar(criada.id);
+    await c.addServico.executar({ ordemId: criada.id, servicoId: SERVICO_ID, quantidade: 1 });
+    await c.enviar.executar(criada.id);
+
+    await c.rejeitar.executar(criada.id, 'Acima do esperado');
+
+    expect(c.ordens.leiturasComBloqueio).toEqual(Array(4).fill(criada.id));
   });
 
   it('consulta andamento mesmo quando o veiculo nao e encontrado', async () => {

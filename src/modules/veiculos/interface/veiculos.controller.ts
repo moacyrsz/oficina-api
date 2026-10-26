@@ -82,7 +82,9 @@ export class VeiculosController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove um veiculo' })
-  @ApiResponse({ status: 204 })
+  @ApiResponse({ status: 204, description: 'Veiculo removido' })
+  @ApiResponse({ status: 404, description: 'Veiculo nao encontrado' })
+  @ApiResponse({ status: 409, description: 'Veiculo possui ordens de servico' })
   public remover(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ): Promise<void> {
