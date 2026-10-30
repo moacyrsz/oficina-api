@@ -1,6 +1,8 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { join } from 'path';
+import { DataSource } from 'typeorm';
 import { AuthModule } from '../../src/modules/auth/auth.module';
 import { HASH_DE_SENHA, HashDeSenha } from '../../src/modules/auth/application/ports/hash-de-senha';
 import { Usuario } from '../../src/modules/auth/domain/usuario';
@@ -16,20 +18,62 @@ import { FiltroDeExcecoes } from '../../src/shared/infrastructure/http/filtro-de
 export const CREDENCIAIS_ADMIN = { email: 'admin@oficina.com.br', senha: 'Admin@123' };
 
 /**
- * Sobe a aplicacao completa para os testes de integracao usando um PostgreSQL
- * em memoria (pg-mem). Nenhum container e necessario: o mesmo mapeamento TypeORM
- * de producao e exercitado contra um banco Postgres emulado em processo.
+ * Banco dos testes de integracao. Por padrao e um banco relacional em memoria
+ * (sql.js, SQLite compilado para WebAssembly), sem nenhum container. Com
+ * TESTE_BANCO=postgres os mesmos testes rodam contra um PostgreSQL real, o que
+ * permite verificar o que o sql.js nao suporta, como o bloqueio pessimista
+ * (SELECT ... FOR UPDATE) sob concorrencia.
+ */
+export const usandoPostgres = process.env.TESTE_BANCO === 'postgres';
+
+export const conexaoPostgres = {
+  type: 'postgres' as const,
+  host: process.env.DB_HOST ?? 'localhost',
+  port: Number(process.env.DB_PORT ?? 5432),
+  username: process.env.DB_USERNAME ?? 'oficina',
+  password: process.env.DB_PASSWORD ?? 'oficina',
+  // Banco exclusivo de testes: o schema e apagado a cada execucao.
+  database: process.env.DB_DATABASE_TESTE ?? 'oficina_teste',
+};
+
+async function garantirBancoDeTestes(): Promise<void> {
+  const administracao = new DataSource({ ...conexaoPostgres, database: 'postgres' });
+  await administracao.initialize();
+  try {
+    const existente = await administracao.query('SELECT 1 FROM pg_database WHERE datname = $1', [
+      conexaoPostgres.database,
+    ]);
+    if (existente.length === 0) {
+      await administracao.query(`CREATE DATABASE "${conexaoPostgres.database}"`);
+    }
+  } finally {
+    await administracao.destroy();
+  }
+}
+
+async function opcoesDoBanco(): Promise<TypeOrmModuleOptions> {
+  if (!usandoPostgres) {
+    return { type: 'sqljs', autoSave: false, autoLoadEntities: true, synchronize: true };
+  }
+  await garantirBancoDeTestes();
+  // No PostgreSQL o schema vem das migrations, como em producao.
+  return {
+    ...conexaoPostgres,
+    autoLoadEntities: true,
+    dropSchema: true,
+    migrations: [join(__dirname, '../../src/database/migrations/*.ts')],
+    migrationsRun: true,
+  };
+}
+
+/**
+ * Sobe a aplicacao completa para os testes de integracao: o mesmo mapeamento
+ * TypeORM de producao e as mesmas transacoes, com o banco escolhido acima.
  */
 export async function criarAppDeTeste(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({
     imports: [
-      TypeOrmModule.forRoot({
-        type: 'sqljs',
-        autoSave: false,
-        location: 'oficina-teste',
-        autoLoadEntities: true,
-        synchronize: true,
-      }),
+      TypeOrmModule.forRoot(await opcoesDoBanco()),
       SharedModule,
       AuthModule,
       ClientesModule,

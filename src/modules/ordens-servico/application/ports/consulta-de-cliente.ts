@@ -1,7 +1,7 @@
 /**
  * Porta de leitura de clientes consumida pela Ordem de Servico, usada para
- * validar a existencia do cliente e para conferir o documento na consulta
- * publica de acompanhamento.
+ * identificar o cliente pelo documento na abertura da ordem e para conferir o
+ * documento nas rotas publicas de acompanhamento.
  */
 export interface ClienteConsultado {
   id: string;
@@ -11,6 +11,8 @@ export interface ClienteConsultado {
 
 export interface ConsultaDeCliente {
   buscarPorId(id: string): Promise<ClienteConsultado | null>;
+  /** Aceita CPF ou CNPJ com ou sem mascara. Documento malformado gera erro de validacao. */
+  buscarPorDocumento(documento: string): Promise<ClienteConsultado | null>;
 }
 
 export const CONSULTA_DE_CLIENTE = Symbol('ConsultaDeCliente');

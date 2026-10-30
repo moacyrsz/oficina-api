@@ -13,6 +13,8 @@ import { OrdemDeServicoSaida, paraSaida } from './ordem-de-servico.saida';
  * transacional critico: a mudanca de status da ordem e a baixa de estoque das
  * pecas ocorrem na mesma transacao. Se o estoque for insuficiente, a baixa
  * falha e toda a operacao e desfeita, deixando a ordem em "Aguardando aprovacao".
+ * Como a ordem e lida com bloqueio, aprovacoes simultaneas da mesma ordem rodam
+ * uma de cada vez e apenas a primeira baixa o estoque.
  */
 @Injectable()
 export class AprovarOrcamentoUseCase {
@@ -24,7 +26,7 @@ export class AprovarOrcamentoUseCase {
 
   public async executar(ordemId: string): Promise<OrdemDeServicoSaida> {
     return this.unidadeDeTrabalho.executar(async () => {
-      const ordem = await this.ordens.buscarPorId(ordemId);
+      const ordem = await this.ordens.buscarPorIdParaAtualizar(ordemId);
       if (!ordem) {
         throw new RecursoNaoEncontrado('Ordem de servico nao encontrada.');
       }

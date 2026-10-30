@@ -20,7 +20,7 @@ export class RejeitarOrcamentoUseCase {
 
   public async executar(ordemId: string, motivo?: string): Promise<OrdemDeServicoSaida> {
     return this.unidadeDeTrabalho.executar(async () => {
-      const ordem = await this.ordens.buscarPorId(ordemId);
+      const ordem = await this.ordens.buscarPorIdParaAtualizar(ordemId);
       if (!ordem) {
         throw new RecursoNaoEncontrado('Ordem de servico nao encontrada.');
       }

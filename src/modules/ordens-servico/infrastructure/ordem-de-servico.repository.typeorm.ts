@@ -32,6 +32,11 @@ export class OrdemDeServicoRepositoryTypeorm
     return registro ? OrdemDeServicoMapper.paraDominio(registro) : null;
   }
 
+  public async buscarPorIdParaAtualizar(id: string): Promise<OrdemDeServico | null> {
+    const registro = await this.repositorio.findOne({ where: { id }, ...this.bloqueioParaAtualizacao });
+    return registro ? OrdemDeServicoMapper.paraDominio(registro) : null;
+  }
+
   public async buscarPorCodigo(codigo: string): Promise<OrdemDeServico | null> {
     const registro = await this.repositorio.findOne({ where: { codigo } });
     return registro ? OrdemDeServicoMapper.paraDominio(registro) : null;

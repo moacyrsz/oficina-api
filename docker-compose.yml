@@ -30,7 +30,8 @@ services:
       DB_USERNAME: oficina
       DB_PASSWORD: oficina
       DB_DATABASE: oficina
-      DB_SYNCHRONIZE: 'true'
+      DB_SYNCHRONIZE: 'false'
+      DB_MIGRATIONS_RUN: 'true'
       DB_LOGGING: 'false'
       JWT_SECRET: troque-por-um-segredo-forte-em-producao
       JWT_EXPIRES_IN: 3600s

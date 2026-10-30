@@ -22,6 +22,3 @@ npm-debug.log*
 .idea
 .vscode
 *.swp
-
-# Material de preparacao da entrega (nao faz parte do codigo do projeto)
-docs/entrega/

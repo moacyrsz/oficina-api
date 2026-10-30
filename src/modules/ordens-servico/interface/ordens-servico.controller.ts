@@ -60,10 +60,13 @@ export class OrdensServicoController {
   ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Cria uma nova ordem de servico' })
+  @ApiOperation({ summary: 'Abre uma ordem de servico a partir do CPF/CNPJ do cliente e da placa do veiculo' })
   @ApiResponse({ status: 201, type: OrdemDeServicoResponse })
+  @ApiResponse({ status: 400, description: 'Documento ou placa em formato invalido' })
+  @ApiResponse({ status: 404, description: 'Cliente ou veiculo nao cadastrado' })
+  @ApiResponse({ status: 422, description: 'O veiculo nao pertence ao cliente' })
   public criar(@Body() dto: CriarOrdemDto): Promise<OrdemDeServicoResponse> {
-    return this.criarOrdem.executar({ clienteId: dto.clienteId, veiculoId: dto.veiculoId });
+    return this.criarOrdem.executar({ documento: dto.documento, placa: dto.placa });
   }
 
   @Get()

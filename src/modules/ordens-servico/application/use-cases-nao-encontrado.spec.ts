@@ -61,7 +61,7 @@ describe('Casos de uso quando a ordem nao existe', () => {
     const veiculos = new ConsultaDeVeiculoFake([]);
     const criar = new CriarOrdemDeServicoUseCase(ordens, clientes, veiculos, uow);
     await expect(
-      criar.executar({ clienteId: 'c1', veiculoId: ID_INEXISTENTE }),
+      criar.executar({ documento: '52998224725', placa: 'ABC1D23' }),
     ).rejects.toBeInstanceOf(RecursoNaoEncontrado);
   });
 
@@ -72,8 +72,8 @@ describe('Casos de uso quando a ordem nao existe', () => {
       { id: 'v1', clienteId: 'c1', placa: 'ABC1D23', marca: 'VW', modelo: 'Gol', ano: 2019 },
     ]);
     const criada = await new CriarOrdemDeServicoUseCase(repo, clientes, veiculos, uow).executar({
-      clienteId: 'c1',
-      veiculoId: 'v1',
+      documento: '52998224725',
+      placa: 'ABC1D23',
     });
     const addServico = new AdicionarServicoUseCase(repo, new CatalogoDeServicosFake([]), uow);
     await expect(

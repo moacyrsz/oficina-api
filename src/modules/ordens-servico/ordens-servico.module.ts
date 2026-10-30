@@ -6,6 +6,7 @@ import { ServicosModule } from '../servicos/servicos.module';
 import { VeiculosModule } from '../veiculos/veiculos.module';
 import { AdicionarPecaUseCase } from './application/adicionar-peca.use-case';
 import { AdicionarServicoUseCase } from './application/adicionar-servico.use-case';
+import { AprovarOrcamentoPeloClienteUseCase } from './application/aprovar-orcamento-pelo-cliente.use-case';
 import { AprovarOrcamentoUseCase } from './application/aprovar-orcamento.use-case';
 import { CalcularTempoMedioUseCase } from './application/calcular-tempo-medio.use-case';
 import { ConsultarAndamentoUseCase } from './application/consultar-andamento.use-case';
@@ -16,10 +17,12 @@ import { EnviarOrcamentoUseCase } from './application/enviar-orcamento.use-case'
 import { FinalizarOrdemUseCase } from './application/finalizar-ordem.use-case';
 import { IniciarDiagnosticoUseCase } from './application/iniciar-diagnostico.use-case';
 import { ListarOrdensUseCase } from './application/listar-ordens.use-case';
+import { LocalizadorDeOrdemDoCliente } from './application/localizador-de-ordem-do-cliente';
 import { CATALOGO_DE_SERVICOS } from './application/ports/catalogo-de-servicos';
 import { CONSULTA_DE_CLIENTE } from './application/ports/consulta-de-cliente';
 import { CONSULTA_DE_VEICULO } from './application/ports/consulta-de-veiculo';
 import { GESTAO_DE_ESTOQUE } from './application/ports/gestao-de-estoque';
+import { RejeitarOrcamentoPeloClienteUseCase } from './application/rejeitar-orcamento-pelo-cliente.use-case';
 import { RejeitarOrcamentoUseCase } from './application/rejeitar-orcamento.use-case';
 import { ORDEM_DE_SERVICO_REPOSITORY } from './domain/ordem-de-servico.repository';
 import { CatalogoDeServicosAdapter } from './infrastructure/catalogo-de-servicos.adapter';
@@ -53,7 +56,10 @@ import { OrdensServicoController } from './interface/ordens-servico.controller';
     ListarOrdensUseCase,
     DetalharOrdemUseCase,
     CalcularTempoMedioUseCase,
+    LocalizadorDeOrdemDoCliente,
     ConsultarAndamentoUseCase,
+    AprovarOrcamentoPeloClienteUseCase,
+    RejeitarOrcamentoPeloClienteUseCase,
     { provide: ORDEM_DE_SERVICO_REPOSITORY, useClass: OrdemDeServicoRepositoryTypeorm },
     { provide: CATALOGO_DE_SERVICOS, useClass: CatalogoDeServicosAdapter },
     { provide: GESTAO_DE_ESTOQUE, useClass: GestaoDeEstoqueAdapter },

@@ -1,6 +1,7 @@
 /**
  * Porta de leitura de veiculos consumida pela Ordem de Servico, usada para
- * validar a existencia do veiculo e sua vinculacao ao cliente informado.
+ * identificar o veiculo pela placa na abertura da ordem e conferir sua
+ * vinculacao ao cliente.
  */
 export interface VeiculoConsultado {
   id: string;
@@ -13,6 +14,8 @@ export interface VeiculoConsultado {
 
 export interface ConsultaDeVeiculo {
   buscarPorId(id: string): Promise<VeiculoConsultado | null>;
+  /** Aceita a placa com ou sem hifen. Placa malformada gera erro de validacao. */
+  buscarPorPlaca(placa: string): Promise<VeiculoConsultado | null>;
 }
 
 export const CONSULTA_DE_VEICULO = Symbol('ConsultaDeVeiculo');

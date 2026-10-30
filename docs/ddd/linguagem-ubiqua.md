@@ -27,13 +27,13 @@ A linguagem ubíqua reúne os termos usados pela oficina e pela equipe de desenv
 
 | Expressão de negócio | Método no agregado | Efeito |
 |----------------------|--------------------|--------|
-| Abrir uma ordem de serviço | `OrdemDeServico.criar` | Cria a OS no status Recebida. |
+| Abrir uma ordem de serviço | `OrdemDeServico.criar` | Cria a OS no status Recebida, para o cliente do CPF/CNPJ e o veículo da placa informados. |
 | Iniciar o diagnóstico | `iniciarDiagnostico` | Recebida passa para Em diagnóstico. |
 | Incluir serviço na ordem | `adicionarServico` | Adiciona um item de serviço (apenas antes do envio do orçamento). |
 | Incluir peça na ordem | `adicionarPeca` | Adiciona um item de peça. |
 | Enviar o orçamento | `enviarParaAprovacao` | Em diagnóstico passa para Aguardando aprovação. |
-| Aprovar o orçamento | `aprovarOrcamento` | Registra a aprovação e passa para Em execução. |
-| Rejeitar o orçamento | `rejeitarOrcamento` | Registra a rejeição e volta para Em diagnóstico. |
+| Aprovar o orçamento | `aprovarOrcamento` | Registra a aprovação e passa para Em execução. Feito pelo cliente na API pública ou pela equipe em nome dele. |
+| Rejeitar o orçamento | `rejeitarOrcamento` | Registra a rejeição e volta para Em diagnóstico. Feito pelo cliente na API pública ou pela equipe em nome dele. |
 | Finalizar a ordem | `finalizar` | Em execução passa para Finalizada. |
 | Entregar o veículo | `entregar` | Finalizada passa para Entregue. |
 

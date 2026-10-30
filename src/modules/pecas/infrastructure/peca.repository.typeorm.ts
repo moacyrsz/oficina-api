@@ -11,7 +11,9 @@ import { PecaOrmEntity } from './peca.orm-entity';
  * Repositorio TypeORM de pecas. Usa sempre o EntityManager da base
  * (this.manager), de modo que a baixa de estoque disparada pela aprovacao da
  * ordem de servico participe da mesma transacao aberta pela Unidade de
- * Trabalho, preservando a atomicidade da operacao.
+ * Trabalho, preservando a atomicidade da operacao. Toda alteracao de estoque
+ * le a peca com buscarParaAtualizar, que bloqueia a linha ate o fim da
+ * transacao.
  */
 @Injectable()
 export class PecaRepositoryTypeorm extends RepositorioTypeorm implements PecaRepository {
@@ -33,16 +35,9 @@ export class PecaRepositoryTypeorm extends RepositorioTypeorm implements PecaRep
   }
 
   public async buscarParaAtualizar(id: string): Promise<Peca | null> {
-    // Bloqueio pessimista (SELECT ... FOR UPDATE) para serializar baixas
-    // concorrentes do mesmo item e impedir overselling. Bancos de teste em
-    // memoria (sqljs/sqlite) nao suportam esse lock, entao a leitura simples e
-    // suficiente (execucao sequencial, sem concorrencia real).
-    const suportaLock = !['sqljs', 'sqlite', 'better-sqlite3'].includes(
-      this.dataSource.options.type as string,
-    );
     const registro = await this.repositorio.findOne({
       where: { id },
-      ...(suportaLock ? { lock: { mode: 'pessimistic_write' as const } } : {}),
+      ...this.bloqueioParaAtualizacao,
     });
     return registro ? PecaMapper.paraDominio(registro) : null;
   }
