@@ -1,6 +1,6 @@
 # Análise de Vulnerabilidades
 
-Data da análise: 26/10/2026 (substitui as análises de 07/10/2026 e 23/10/2026).
+Data da análise: 30/10/2026 (substitui as análises de 07/10, 23/10 e 26/10/2026).
 Ferramenta: `npm audit` (base de advisories do GitHub e do npm), complementada por revisão manual.
 
 ## Como reproduzir
@@ -20,13 +20,30 @@ npm audit
 | Crítica | 0 | 0 |
 | Alta | 0 | 0 |
 | Moderada | 0 | 0 |
-| Baixa | 0 | 0 |
+| Baixa | 0 | 9 |
 
-Saída do `npm audit`:
+As dependências de produção, que são as únicas instaladas na imagem Docker, não têm alertas:
 
 ```text
+$ npm audit --omit=dev
 found 0 vulnerabilities
 ```
+
+Os 9 registros de severidade baixa do panorama completo vêm de uma única causa, em ferramentas de desenvolvimento:
+
+```text
+$ npm audit
+deepmerge  >=4.2.0
+deepmerge mergeObject() allows prototype poisoning of returned objects - https://github.com/advisories/GHSA-gcqx-w48m-w2h4
+fix available via `npm audit fix --force`
+Will install @nestjs/cli@7.2.0, which is a breaking change
+...
+9 low severity vulnerabilities
+```
+
+- **Causa**: o `deepmerge` 4.3.1 ([GHSA-gcqx-w48m-w2h4](https://github.com/advisories/GHSA-gcqx-w48m-w2h4)), usado pelo `jest-config` (Jest) e pelo `fork-ts-checker-webpack-plugin` (`@nestjs/cli`). Os outros registros são esses pacotes, apontados por dependerem dele.
+- **Risco**: baixo. O `deepmerge` é usado apenas para mesclar arquivos de configuração do próprio projeto, que são entradas confiáveis, durante os testes e o build. Ele não faz parte da imagem de produção (`npm ci --omit=dev`) e não recebe dados de requisições.
+- **Por que não foi corrigido**: não existe versão corrigida publicada. A 4.3.1 é a mais recente e está dentro da faixa afetada. A sugestão do `npm audit fix --force` rebaixaria o Jest para a versão 25 e o `@nestjs/cli` para a 7, o que quebraria a suíte de testes e o build. A correção será aplicada quando uma versão corrigida do `deepmerge`, ou das ferramentas que o usam, for publicada.
 
 ## Correções aplicadas
 
@@ -68,4 +85,4 @@ Validação após as atualizações: `npm run typecheck`, 177 testes unitários,
 
 ## Conclusão
 
-Não há vulnerabilidades conhecidas nas dependências de produção nem nas de desenvolvimento nesta data.
+Não há vulnerabilidades conhecidas nas dependências de produção nesta data. Nas ferramentas de desenvolvimento, resta um aviso de severidade baixa no `deepmerge`, sem correção publicada, que não chega à imagem de produção.
