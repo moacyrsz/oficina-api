@@ -197,7 +197,7 @@ Cada módulo segue a mesma divisão em domain, application, infrastructure e int
   - [Linguagem Ubíqua](docs/ddd/linguagem-ubiqua.md)
   - [Glossário](docs/ddd/glossario.md)
   - [Relação entre documentação e código](docs/ddd/ddd-para-codigo.md)
-- Documentação no Miro (link externo): «informe o link do Miro»
+- Documentação no Miro (link externo, acesso público sem login): [Oficina API: documentação DDD](https://miro.com/app/board/uXjVETBR7Vs=/?share_link_id=957482431716)
 
 ## Vídeo da entrega
 
